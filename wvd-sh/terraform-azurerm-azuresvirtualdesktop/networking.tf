@@ -3,22 +3,20 @@ resource "azurerm_virtual_network" "vnet" {
   address_space       = var.vnet_range
   dns_servers         = var.dns_servers
   location            = var.deploy_location
-  resource_group_name = var.rg_name
-  depends_on          = [azurerm_resource_group.rg]
+  resource_group_name = azurerm_resource_group.rg.name
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "default"
-  resource_group_name  = var.rg_name
+  resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = var.subnet_range
-  depends_on           = [azurerm_resource_group.rg]
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.prefix}-NSG"
   location            = var.deploy_location
-  resource_group_name = var.rg_name
+  resource_group_name = azurerm_resource_group.rg.name
   security_rule {
     name                       = "HTTPS"
     priority                   = 1001
@@ -30,7 +28,6 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-  depends_on = [azurerm_resource_group.rg]
 }
 
 resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
@@ -40,18 +37,18 @@ resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
 
 data "azurerm_virtual_network" "ad_vnet_data" {
   name                = var.ad_vnet
-  resource_group_name = var.ad_rg
+  resource_group_name = azurerm_resource_group.rg.name
 }
 
 resource "azurerm_virtual_network_peering" "peer1" {
   name                      = "peer_avd_ad"
-  resource_group_name       = var.rg_name
+  resource_group_name       = azurerm_resource_group.rg.name
   virtual_network_name      = azurerm_virtual_network.vnet.name
   remote_virtual_network_id = data.azurerm_virtual_network.ad_vnet_data.id
 }
 resource "azurerm_virtual_network_peering" "peer2" {
   name                      = "peer_ad_avd"
-  resource_group_name       = var.ad_rg
-  virtual_network_name      = var.ad_vnet
+  resource_group_name       = azurerm_resource_group.rg.name
+  virtual_network_name      = azurerm_virtual_network.vnet.name
   remote_virtual_network_id = azurerm_virtual_network.vnet.id
 }
